@@ -288,28 +288,28 @@ generate
             logic overflowMux0;
             logic overflowMux1;
             if(j==0) begin
-                if(i==0) begin
-                    assign IndexSeqMux0 = (num_zeros[1][j] == 1'b1) ? IndexSeq[NUM_SHIFT] : IndexSeq[0];
-                    assign IndexSeqMux1 = (num_zeros[1][j] == 1'b1) ? IndexSeq[0] : IndexSeq[NUM_SHIFT];
-                    assign overflowMux0 = (num_zeros[1][j] == 1'b1) ? overflow[NUM_SHIFT] : overflow[0];
-                    assign overflowMux1 = (num_zeros[1][j] == 1'b1) ? overflow[0] : overflow[NUM_SHIFT];
+                if(i<NUM_SHIFT) begin
+                    assign IndexSeqMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? IndexSeq[i+NUM_SHIFT] : IndexSeq[0];
+                    assign IndexSeqMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? IndexSeq[0] : IndexSeq[i+NUM_SHIFT];
+                    assign overflowMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? overflow[i+NUM_SHIFT] : overflow[0];
+                    assign overflowMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? overflow[0] : overflow[i+NUM_SHIFT];
                 end else begin
-                    assign IndexSeqMux0 = (num_zeros[i+1][j] == 1'b1) ? IndexSeq[i+NUM_SHIFT] : scan_stride[i-1].IndexSeqMux1;
-                    assign IndexSeqMux1 = (num_zeros[i+1][j] == 1'b1) ? scan_stride[i-1].IndexSeqMux1 : IndexSeq[i+NUM_SHIFT];
-                    assign overflowMux0 = (num_zeros[i+1][j] == 1'b1) ? overflow[i+NUM_SHIFT] : scan_stride[i-1].overflowMux1;
-                    assign overflowMux1 = (num_zeros[i+1][j] == 1'b1) ? scan_stride[i-1].overflowMux1 : overflow[i+NUM_SHIFT];
+                    assign IndexSeqMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? IndexSeq[i+NUM_SHIFT] : scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                    assign IndexSeqMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? scan_stride[i-NUM_SHIFT].IndexSeqMux1 : IndexSeq[i+NUM_SHIFT];
+                    assign overflowMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? overflow[i+NUM_SHIFT] : scan_stride[i-NUM_SHIFT].overflowMux1;
+                    assign overflowMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? scan_stride[i-NUM_SHIFT].overflowMux1 : overflow[i+NUM_SHIFT];
                 end
             end else begin
-                if(i==0) begin
-                    assign IndexSeqMux0 = (num_zeros[1][j] == 1'b1) ? stride[j-1].IndexSeq_stg[NUM_SHIFT] : stride[j-1].IndexSeq_stg[0];
-                    assign IndexSeqMux1 = (num_zeros[1][j] == 1'b1) ? stride[j-1].IndexSeq_stg[0] : stride[j-1].IndexSeq[NUM_SHIFT];
-                    assign overflowMux0 = (num_zeros[1][j] == 1'b1) ? stride[j-1].overflow_stg[NUM_SHIFT] : stride[j-1].overflow_stg[0];
-                    assign overflowMux1 = (num_zeros[1][j] == 1'b1) ? stride[j-1].overflow_stg[0] : stride[j-1].overflow_stg[NUM_SHIFT];
+                if(i<NUM_SHIFT) begin
+                    assign IndexSeqMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? stride[j-1].IndexSeq_stg[i+NUM_SHIFT] : stride[j-1].IndexSeq_stg[0];
+                    assign IndexSeqMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? stride[j-1].IndexSeq_stg[0] : stride[j-1].IndexSeq_stg[i+NUM_SHIFT];
+                    assign overflowMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? stride[j-1].overflow_stg[i+NUM_SHIFT] : stride[j-1].overflow_stg[0];
+                    assign overflowMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? stride[j-1].overflow_stg[0] : stride[j-1].overflow_stg[i+NUM_SHIFT];
                 end else begin
-                    assign IndexSeqMux0 = (num_zeros[i+1][j] == 1'b1) ? stride[j-1].IndexSeq_stg[i+NUM_SHIFT] : scan_stride[i-1].IndexSeqMux1;
-                    assign IndexSeqMux1 = (num_zeros[i+1][j] == 1'b1) ? scan_stride[i-1].IndexSeqMux1 : stride[j-1].IndexSeq_stg[i+NUM_SHIFT];
-                    assign overflowMux0 = (num_zeros[i+1][j] == 1'b1) ? stride[j-1].overflow_stg[i+NUM_SHIFT] : scan_stride[i-1].overflowMux1;
-                    assign overflowMux1 = (num_zeros[i+1][j] == 1'b1) ? scan_stride[i-1].overflowMux1 : stride[j-1].overflow_stg[i+NUM_SHIFT];
+                    assign IndexSeqMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? stride[j-1].IndexSeq_stg[i+NUM_SHIFT] : scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                    assign IndexSeqMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? scan_stride[i-NUM_SHIFT].IndexSeqMux1 : stride[j-1].IndexSeq_stg[i+NUM_SHIFT];
+                    assign overflowMux0 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? stride[j-1].overflow_stg[i+NUM_SHIFT] : scan_stride[i-NUM_SHIFT].overflowMux1;
+                    assign overflowMux1 = (num_zeros_stg[i+NUM_SHIFT][j] == 1'b1) ? scan_stride[i-NUM_SHIFT].overflowMux1 : stride[j-1].overflow_stg[i+NUM_SHIFT];
                 end
             end
         end
@@ -317,18 +317,18 @@ generate
         // pt3. connect mux tree to output in a stride loop
         for(genvar i=0; i<dimm; i++) begin
             if(j==$clog2(dimm)-1) begin
-                if(i == dimm-1) begin
-                    assign index[i] = scan_stride[i-1].IndexSeqMux1;
-                end else begin
+                if(i < dimm-NUM_SHIFT) begin
                     assign index[i] = scan_stride[i].IndexSeqMux0;
+                end else begin
+                    assign index[i] = scan_stride[i-NUM_SHIFT].IndexSeqMux1;
                 end                
             end else begin
-                if(i == dimm-1) begin
-                    assign IndexSeq_stg[i] = scan_stride[i-1].IndexSeqMux1;
-                    assign overflow_stg[i] = scan_stride[i-1].overflowMux1;
-                end else begin
+                if(i < dimm-NUM_SHIFT) begin
                     assign IndexSeq_stg[i] = scan_stride[i].IndexSeqMux0;
                     assign overflow_stg[i] = scan_stride[i].overflowMux0;
+                end else begin
+                    assign IndexSeq_stg[i] = scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                    assign overflow_stg[i] = scan_stride[i-NUM_SHIFT].overflowMux1;
                 end
             end
         end
