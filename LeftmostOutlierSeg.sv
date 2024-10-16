@@ -2,13 +2,14 @@ module LeftmostOutlierSeg #(
     parameter NUM_LR = 4,
     //only support dimm=8 now
     parameter dimm = 64,
-    parameter IndexWidth = $clog2(dimm)
+    parameter IndexWidth = $clog2(dimm),
+    parameter PIPELINE = 6'b000001
 )(
     input logic clk,
     input logic rst_n,
     // input logic ready,
     input logic [dimm-1 : 0] overflow,
-    output logic [NUM_LR-1 : 0][IndexWidth-1 : 0] index
+    output logic [dimm-1 : 0][IndexWidth-1 : 0] index
     // output logic valid
 );
 
@@ -132,119 +133,12 @@ module LeftmostOutlierSeg #(
 //     end
 // end
 
-// ################## version1 ################################### 
-// Only calculating index of Outliers, invalidate index of Inliers
-// Add a valid bit in IndexSeq
-
-// logic [dimm-1:0][IndexWidth-1+1:0] IndexSeq;
-// logic [dimm-1:0][IndexWidth-1:0] num_zeros;
-
-
-// // wires used as stg2 input
-// logic [dimm-1:0][IndexWidth-1+1:0] IndexSeq_stg1;
-// logic [dimm-1:0] overflow_stg1;
-// logic [dimm-1:0][IndexWidth-1:0] num_zeros_stg1;
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         assign IndexSeq[i] = i;
-//     end
-// endgenerate
-
-
-// // stage 1 stride 1
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         if(i==0) begin
-//             assign num_zeros[i] = 0;
-//         end
-
-//         else begin
-//             assign num_zeros[i] = num_zeros[i-1] + ~overflow[i-1];
-//         end
-//     end
-// endgenerate
-
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         if(i==dimm-1) begin
-//             assign IndexSeq_stg1[i] = (num_zeros[i][0] == 1'b1) ? {$bits(IndexSeq){1'b1}} : IndexSeq[i];
-//             assign overflow_stg1[i] = (num_zeros[i][0] == 1'b1) ? 1'b0 : overflow[i];
-//         end else begin
-//             assign IndexSeq_stg1[i] = (num_zeros[i+1][0] == 1'b1) ? IndexSeq[i+1] : IndexSeq[i];
-//             assign overflow_stg1[i] = (num_zeros[i+1][0] == 1'b1) ? overflow[i+1] : overflow[i];
-//         end
-//     end
-// endgenerate
-
-// // wires used as stg3 input
-// logic [dimm-1:0][IndexWidth-1+1:0] IndexSeq_stg2;
-// logic [dimm-1:0] overflow_stg2;
-// logic [dimm-1:0][IndexWidth-1:0] num_zeros_stg2;
-
-// // stage 2 stride 2
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         if(i==0) begin
-//             assign num_zeros_stg1[i] = 0;
-//         end
-
-//         else begin
-//             assign num_zeros_stg1[i] = num_zeros_stg1[i-1] + ~overflow_stg1[i-1];
-//         end
-//     end
-// endgenerate
-
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         if(i>=dimm-2) begin
-//             //'b1111 for invalid index(dont' care)
-//             assign IndexSeq_stg2[i] = (num_zeros_stg1[i][1] == 1'b1) ? {$bits(IndexSeq){1'b1}} : IndexSeq_stg1[i];
-//             assign overflow_stg2[i] = (num_zeros_stg1[i][1] == 1'b1) ? 1'b0 : overflow_stg1[i];
-//         end else begin
-//             assign IndexSeq_stg2[i] = (num_zeros_stg1[i+2][1] == 1'b1) ? IndexSeq_stg1[i+2] : IndexSeq_stg1[i];
-//             assign overflow_stg2[i] = (num_zeros_stg1[i+2][1] == 1'b1) ? overflow_stg1[i+2] : overflow_stg1[i];
-//         end
-//     end
-// endgenerate
-
-// logic [dimm-1:0][IndexWidth-1+1:0] IndexSeq_stg3;
-// logic [dimm-1:0] overflow_stg3;
-// // stage 3 stride 4
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         if(i==0) begin
-//             assign num_zeros_stg2[i] = 0;
-//         end
-
-//         else begin
-//             assign num_zeros_stg2[i] = num_zeros_stg2[i-1] + ~overflow_stg2[i-1];
-//         end
-//     end
-// endgenerate
-
-// generate
-//     for(genvar i=0; i<dimm; i++) begin
-//         if(i>=dimm-4) begin
-//             //'b1111 for invalid index(dont' care)
-//             assign IndexSeq_stg3[i] = (num_zeros_stg2[i][1] == 1'b1) ? {$bits(IndexSeq){1'b1}} : IndexSeq_stg2[i];
-//             assign overflow_stg3[i] = (num_zeros_stg2[i][1] == 1'b1) ? 1'b0 : overflow_stg2[i];
-//         end else begin
-//             assign IndexSeq_stg3[i] = (num_zeros_stg2[i+2][1] == 1'b1) ? IndexSeq_stg2[i+2] : IndexSeq_stg2[i];
-//             assign overflow_stg3[i] = (num_zeros_stg2[i+2][1] == 1'b1) ? overflow_stg2[i+2] : overflow_stg2[i];
-//         end
-//     end
-// endgenerate
-
-// generate
-//     for(genvar i=0; i<NUM_LR; i++) begin
-//         assign index[i] = IndexSeq_stg3[i];
-//     end
-// endgenerate
-
 
 // ########################### version2 #################################
 
 // ################## automization ###################
+localparam [$clog2(dimm)-1:0] PIPE = PIPELINE;
+
 logic [dimm-1:0][IndexWidth-1:0] IndexSeq;
 
 generate
@@ -315,22 +209,66 @@ generate
         end
 
         // pt3. connect mux tree to output in a stride loop
-        for(genvar i=0; i<dimm; i++) begin
-            if(j==$clog2(dimm)-1) begin
-                if(i < dimm-NUM_SHIFT) begin
-                    assign index[i] = scan_stride[i].IndexSeqMux0;
+        if(~PIPE[j]) begin
+            for(genvar i=0; i<dimm; i++) begin
+                if(j==$clog2(dimm)-1) begin
+                    if(i < dimm-NUM_SHIFT) begin
+                        assign index[i] = scan_stride[i].IndexSeqMux0;
+                    end else begin
+                        assign index[i] = scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                    end                
                 end else begin
-                    assign index[i] = scan_stride[i-NUM_SHIFT].IndexSeqMux1;
-                end                
-            end else begin
-                if(i < dimm-NUM_SHIFT) begin
-                    assign IndexSeq_stg[i] = scan_stride[i].IndexSeqMux0;
-                    assign overflow_stg[i] = scan_stride[i].overflowMux0;
-                end else begin
-                    assign IndexSeq_stg[i] = scan_stride[i-NUM_SHIFT].IndexSeqMux1;
-                    assign overflow_stg[i] = scan_stride[i-NUM_SHIFT].overflowMux1;
+                    if(i < dimm-NUM_SHIFT) begin
+                        assign IndexSeq_stg[i] = scan_stride[i].IndexSeqMux0;
+                        assign overflow_stg[i] = scan_stride[i].overflowMux0;
+                    end else begin
+                        assign IndexSeq_stg[i] = scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                        assign overflow_stg[i] = scan_stride[i-NUM_SHIFT].overflowMux1;
+                    end
                 end
             end
+        end else begin
+            for(genvar i=0; i<dimm; i++) begin
+                if(j==$clog2(dimm)-1) begin
+                    if(i < dimm-NUM_SHIFT) begin
+                        always_ff@(posedge clk or negedge rst_n) begin
+                            if(!rst_n)
+                                index[i] <= 0;
+                            else 
+                                index[i] <= scan_stride[i].IndexSeqMux0;
+                        end
+                    end else begin
+                        always_ff@(posedge clk or negedge rst_n) begin
+                            if(!rst_n)
+                                index[i] <= 0;
+                            else
+                                index[i] <= scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                        end
+                    end                
+                end else begin
+                    if(i < dimm-NUM_SHIFT) begin
+                        always_ff@(posedge clk or negedge rst_n) begin
+                            if(!rst_n) begin
+                                IndexSeq_stg[i] <= 0;
+                                overflow_stg[i] <= 0;                            
+                            end else begin                        
+                                IndexSeq_stg[i] <= scan_stride[i].IndexSeqMux0;
+                                overflow_stg[i] <= scan_stride[i].overflowMux0;
+                            end
+                        end
+                    end else begin
+                        always_ff@(posedge clk or negedge rst_n) begin
+                            if(!rst_n) begin
+                                IndexSeq_stg[i] <= 0;
+                                overflow_stg[i] <= 0;
+                            end else begin
+                                IndexSeq_stg[i] <= scan_stride[i-NUM_SHIFT].IndexSeqMux1;
+                                overflow_stg[i] <= scan_stride[i-NUM_SHIFT].overflowMux1;
+                            end
+                        end
+                    end
+                end
+            end        
         end
     end    
 endgenerate        

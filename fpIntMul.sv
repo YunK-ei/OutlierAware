@@ -1,48 +1,76 @@
 module fpIntMul(
-    input logic [15:0] fp,
-    input logic [2:0] int3,
+    input  logic [15:0] fp,
+    input  logic [2:0]  int3,
     output logic [15:0] out_mul
 );
+    // * Internal Logics
+    logic [2:0] fpSign;
+    logic [2:0][5-1:0] fpExp;
+    logic [2:0][10-1:0] fpFrac;
+    logic [15:0] out_mul_w;
 
-localparam sig_width = 10;
-localparam exp_width = 5;
-localparam ieee_compliance = 0;
+    // * Split
+    assign fpSign[0] = fp[15];
+    assign fpSign[1] = fp[15];
+    assign fpSign[2] = fp[15] ^ int3[2];
+    assign fpExp[0]  = int3[0] ? fp[14:10] : 0;
+    assign fpExp[1]  = int3[1] ? (fp[14:10] + 1) : 0;
+    assign fpExp[2]  = int3[2] ? (fp[14:10] + 2) : 0;
+    assign fpFrac[0] = fp[9:0];
+    assign fpFrac[1] = fp[9:0];
+    assign fpFrac[2] = fp[9:0];
 
-logic [4:0] out_mul_exp2;
-logic [4:0] out_mul_exp1;
-logic [4:0] out_mul_exp0;
-
-logic [15:0] out_mul_partial2;
-logic [15:0] out_mul_partial1;
-logic [15:0] out_mul_partial0;
-
-assign out_mul_exp2 = fp [14:10] + 2'b10;
-assign out_mul_exp1 = fp [14:10] + 2'b01;
-assign out_mul_exp0 = fp [14:10] + 2'b00;
-
-assign out_mul_partial2 = {fp[15], out_mul_exp2, fp[9:0]} & {16{int3[2]}};
-assign out_mul_partial1 = {fp[15], out_mul_exp1, fp[9:0]} & {16{int3[1]}};
-assign out_mul_partial0 = {fp[15], out_mul_exp0, fp[9:0]} & {16{int3[0]}};
-
-logic [1:0] [7:0] status;
-logic [15:0] wire0;
-
-DW_fp_add #(sig_width, exp_width, ieee_compliance)
-    U0(
-        .a(out_mul_partial2),
-        .b(out_mul_partial1),
-        .rnd(3'b000),
-        .z(wire0),
-        .status(status[0])
+    // * Mult
+    DW_fp_sum3 #(
+        .sig_width          ( 10    ),
+        .exp_width          (  5    ),
+        .ieee_compliance    (  0    ),
+        .arch_type          (  0    )
+    ) u_fp_sum3 (
+        .a  ({fpSign[0],fpExp[0],fpFrac[0]}),
+        .b  ({fpSign[1],fpExp[1],fpFrac[1]}),
+        .c  ({fpSign[2],fpExp[2],fpFrac[2]}),
+        .rnd( 3'b000                       ),
+        .z  ( out_mul                      )
     );
 
-DW_fp_add #(sig_width, exp_width, ieee_compliance)
-    U1(
-        .a(wire0),
-        .b(out_mul_partial0),
-        .rnd(3'b000),
-        .z(out_mul),
-        .status(status[1])
+endmodule
+
+
+module fpIntMulSum3(
+    input  logic [15:0] fp,
+    input  logic [2:0]  int3,
+    output logic [15:0] out_mul
+);
+    // * Internal Logics
+    logic [2:0] fpSign;
+    logic [2:0][5-1:0] fpExp;
+    logic [2:0][10-1:0] fpFrac;
+    logic [15:0] out_mul_w;
+
+    // * Split
+    assign fpSign[0] = fp[15];
+    assign fpSign[1] = fp[15];
+    assign fpSign[2] = fp[15] ^ int3[2];
+    assign fpExp[0]  = int3[0] ? fp[14:10] : 0;
+    assign fpExp[1]  = int3[1] ? (fp[14:10] + 1) : 0;
+    assign fpExp[2]  = int3[2] ? (fp[14:10] + 2) : 0;
+    assign fpFrac[0] = fp[9:0];
+    assign fpFrac[1] = fp[9:0];
+    assign fpFrac[2] = fp[9:0];
+
+    // * Mult
+    DW_fp_sum3 #(
+        .sig_width          ( 10    ),
+        .exp_width          (  5    ),
+        .ieee_compliance    (  0    ),
+        .arch_type          (  0    )
+    ) u_fp_sum3 (
+        .a  ({fpSign[0],fpExp[0],fpFrac[0]}),
+        .b  ({fpSign[1],fpExp[1],fpFrac[1]}),
+        .c  ({fpSign[2],fpExp[2],fpFrac[2]}),
+        .rnd( 3'b000                       ),
+        .z  ( out_mul                      )
     );
 
 endmodule

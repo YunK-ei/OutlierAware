@@ -10,7 +10,7 @@ module OutlierSeg #(
     input logic [15:0] arrayA [dimm],
     input logic [15:0] arrayW [dimm],
     output logic [NUM_LR-1:0][15:0] OutlierSegOut,
-    output logic [NUM_LR-1 : 0][IndexWidth-1:0] index
+    output logic [dimm-1 : 0][IndexWidth-1:0] index
 );
 
 localparam sig_width = 10;

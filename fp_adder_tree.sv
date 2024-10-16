@@ -1,8 +1,8 @@
 //the adder_tree only support LENGTH = 2**N, input port same bit width(any)
-module adder_tree #(
-    parameter PIPELINE = 1'b1,
+module fp_adder_tree #(
+    parameter PIPELINE = 6'b000001,
     parameter DATA_WIDTH = 32,
-    parameter LENGTH = 2
+    parameter LENGTH = 64
 ) (
     input  logic clk,
     input  logic rst_n,
@@ -16,20 +16,41 @@ module adder_tree #(
 // local parameters
 localparam NUM_LAYERS = $clog2(LENGTH);
 localparam [NUM_LAYERS-1:0] ADD_REG = PIPELINE;
+localparam sig_width = 10;
+localparam exp_width = 5;
+localparam ieee_compliance = 0;
 // adder tree
 generate
     for (genvar i = 0; i < NUM_LAYERS; i = i+1) begin: tree
         localparam NODE_N = LENGTH / (2**(i+1));
-        localparam NODE_W = DATA_WIDTH + i + 1;
+        localparam NODE_W = DATA_WIDTH;
         logic [NODE_N-1:0][NODE_W-1:0] node;
         logic [NODE_N-1:0][NODE_W-1:0] node_d;
         // adder
         if (i == 0) begin
             for (genvar j = 0; j < NODE_N; j = j+1) begin
+                // DW_fp_add #(
+                //     sig_width, exp_width, ieee_compliance
+                // ) U0(
+                //     .a(x[2*j]),
+                //     .b(x[2*j+1]),
+                //     .rnd(3'b000),
+                //     .z(node[j]),
+                //     .status()
+                // );
                 assign node[j] = signed'(x[2*j]) + signed'(x[2*j+1]);
             end
         end else begin
             for (genvar j = 0; j < NODE_N; j = j+1) begin
+                // DW_fp_add #(
+                //     sig_width, exp_width, ieee_compliance
+                // ) U1(
+                //     .a(tree[i-1].node_d[2*j]),
+                //     .b(tree[i-1].node_d[2*j+1]),
+                //     .rnd(3'b000),
+                //     .z(node[j]),
+                //     .status()
+                // );
                 assign node[j] = signed'(tree[i-1].node_d[2*j]) + signed'(tree[i-1].node_d[2*j+1]);
             end
         end

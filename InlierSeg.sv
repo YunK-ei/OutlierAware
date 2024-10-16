@@ -9,7 +9,7 @@ module InlierSeg #(
     input logic rst_n,
     input logic [dimm-1:0][15:0] arrayA,
     input logic [dimm-1:0][15:0] arrayW,
-    input logic [NUM_LR-1 : 0][IndexWidth-1:0] index,
+    input logic [dimm-1:0][IndexWidth-1:0] index,
     output logic [dimm-NUM_LR-1:0][15:0] InlierSegOut,
     output logic [dimm-1:0]overflow
 );
@@ -43,6 +43,8 @@ endgenerate
 generate
     for(genvar i=0; i < dimm-NUM_LR; i++) begin
         fpIntMul U0_fpIntMul(
+            .clk(clk),
+            .rst_n(rst_n),
             .fp(arrayW[index[i+NUM_LR]]),
             .int3(arrayAint[index[i+NUM_LR]]),
             .out_mul(InlierSegOut[i])
